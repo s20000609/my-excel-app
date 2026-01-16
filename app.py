@@ -338,18 +338,34 @@ if uploaded_file:
         df = load_data(uploaded_file)
     
     if df is not None and not df.empty:
-        # --- 頂部篩選區 (專業卡片樣式) ---
+        # --- 頂部篩選區 (下拉多選方式) ---
         st.markdown('<div class="filter-container">', unsafe_allow_html=True)
         st.markdown("### 🔍 資料篩選")
-        c1, c2, c3, c4 = st.columns(4)
+        c1, c2, c3, c4 = st.columns([2, 2, 2, 1])
         with c1:
-            years = st.multiselect("📅 年度", sorted(df["年度"].unique()), default=sorted(df["年度"].unique()))
+            years = st.multiselect(
+                "📅 年度", 
+                sorted(df["年度"].unique()), 
+                default=sorted(df["年度"].unique()),
+                help="選擇要分析的年度，可多選"
+            )
         with c2:
-            types = st.multiselect("⚠️ 事件類別", sorted(df["事件類別"].unique()), default=sorted(df["事件類別"].unique()))
+            types = st.multiselect(
+                "⚠️ 事件類別", 
+                sorted(df["事件類別"].unique()), 
+                default=sorted(df["事件類別"].unique()),
+                help="選擇要分析的事件類別，可多選"
+            )
         with c3:
-            depts = st.multiselect("🏢 發生單位", sorted(df["發生單位"].unique()), default=sorted(df["發生單位"].unique()))
+            depts = st.multiselect(
+                "🏢 發生單位", 
+                sorted(df["發生單位"].unique()), 
+                default=sorted(df["發生單位"].unique()),
+                help="選擇要分析的發生單位，可多選"
+            )
         with c4:
-            if st.button("🔄 重置篩選", use_container_width=True):
+            st.markdown("<br>", unsafe_allow_html=True)
+            if st.button("🔄 重置", use_container_width=True):
                 st.session_state.selected_event = None
                 st.session_state.selected_dept = None
                 st.session_state.selected_year = None
@@ -360,7 +376,7 @@ if uploaded_file:
 
         # --- KPI 卡片 (專業儀表板風格) ---
         st.markdown("<br>", unsafe_allow_html=True)
-        k1, k2, k3, k4, k5 = st.columns(5)
+        k1, k2 = st.columns(2)
         
         total_cases = len(f_df)
         k1.metric("📊 總案件數", f"{total_cases:,}", delta=None)
@@ -371,17 +387,6 @@ if uploaded_file:
             k2.metric("⚠️ 主要風險", main_risk, delta=f"{risk_count} 件")
         else:
             k2.metric("⚠️ 主要風險", "-", delta=None)
-        
-        percentage = round(len(f_df)/len(df)*100, 1) if not df.empty else 0
-        k3.metric("📈 篩選佔比", f"{percentage}%", delta=f"{len(df)} 件總數")
-        
-        k4.metric("📅 監測年度", f"{len(years)}", delta="個年度")
-        
-        if not f_df.empty and "發生單位" in f_df.columns:
-            unique_depts = f_df["發生單位"].nunique()
-            k5.metric("🏢 涉及單位", f"{unique_depts}", delta="個單位")
-        else:
-            k5.metric("🏢 涉及單位", "0", delta=None)
 
         # --- 主要內容區 ---
         tab_total, tab_trend, tab_data, tab_detail = st.tabs(["📌 統計總覽", "📈 趨勢分析", "📋 資料明細", "🔍 點擊詳情"])
