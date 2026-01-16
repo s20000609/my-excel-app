@@ -13,6 +13,8 @@ if 'selected_dept' not in st.session_state:
     st.session_state.selected_dept = None
 if 'selected_year' not in st.session_state:
     st.session_state.selected_year = None
+if 'active_tab' not in st.session_state:
+    st.session_state.active_tab = 0
 
 # --- 專業儀表板 CSS 樣式 ---
 st.markdown("""
@@ -121,6 +123,67 @@ st.markdown("""
         border-radius: 12px;
         padding: 1rem;
         box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        overflow-x: auto !important;
+        width: 100% !important;
+    }
+    
+    /* 表格容器橫向滾動 */
+    .stDataFrame > div {
+        overflow-x: auto !important;
+        overflow-y: auto !important;
+    }
+    
+    /* 確保表格可以橫向滾動 */
+    div[data-testid="stDataFrame"] > div {
+        overflow-x: scroll !important;
+        max-width: 100%;
+    }
+    
+    /* 深色模式適配 */
+    @media (prefers-color-scheme: dark) {
+        .main {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%) !important;
+        }
+        
+        .stMetric {
+            background: linear-gradient(135deg, #2d3748 0%, #1a202c 100%) !important;
+            color: #e2e8f0 !important;
+        }
+        
+        [data-testid="stMetricValue"] {
+            color: #f7fafc !important;
+        }
+        
+        [data-testid="stMetricLabel"] {
+            color: #cbd5e0 !important;
+        }
+        
+        .filter-container {
+            background: rgba(45, 55, 72, 0.95) !important;
+            color: #e2e8f0 !important;
+        }
+        
+        label {
+            color: #e2e8f0 !important;
+        }
+        
+        [data-testid="stPlotlyChart"] {
+            background: #2d3748 !important;
+        }
+        
+        [data-testid="stDataFrame"] {
+            background: #2d3748 !important;
+            color: #e2e8f0 !important;
+        }
+        
+        .stTabs [data-baseweb="tab-list"] {
+            background: rgba(45, 55, 72, 0.95) !important;
+        }
+        
+        .info-card {
+            background: rgba(45, 55, 72, 0.95) !important;
+            color: #e2e8f0 !important;
+        }
     }
     
     /* 按鈕樣式 */
@@ -271,7 +334,25 @@ if uploaded_file:
             k5.metric("🏢 涉及單位", "0", delta=None)
 
         # --- 主要內容區 ---
-        tab_total, tab_trend, tab_data, tab_detail = st.tabs(["📌 統計總覽", "📈 趨勢分析", "📋 資料明細", "🔍 點擊詳情"])
+        tab_names = ["📌 統計總覽", "📈 趨勢分析", "📋 資料明細", "🔍 點擊詳情"]
+        
+        # 如果有選擇項目，顯示提示並自動跳轉
+        if st.session_state.selected_event or st.session_state.selected_dept or st.session_state.selected_year:
+            if st.session_state.active_tab != 3:
+                st.session_state.active_tab = 3
+                # 使用 JavaScript 自動切換到點擊詳情頁籤
+                st.markdown("""
+                    <script>
+                    setTimeout(function() {
+                        var tabs = document.querySelectorAll('[data-baseweb="tab"]');
+                        if (tabs.length >= 4) {
+                            tabs[3].click();
+                        }
+                    }, 100);
+                    </script>
+                """, unsafe_allow_html=True)
+        
+        tab_total, tab_trend, tab_data, tab_detail = st.tabs(tab_names)
         
         with tab_total:
             # 第一行：兩個主要圖表
@@ -294,9 +375,10 @@ if uploaded_file:
                     )
                     fig_pie.update_layout(
                         showlegend=True, 
-                        margin=dict(t=20, b=20, l=20, r=20),
+                        margin=dict(t=40, b=40, l=40, r=40, pad=10),
                         height=400,
-                        font=dict(size=12)
+                        font=dict(size=12),
+                        autosize=True
                     )
                     
                     # 使用 on_select 處理點擊事件
@@ -312,6 +394,17 @@ if uploaded_file:
                         point = selected_pie.selection.points[0]
                         if hasattr(point, 'label') and point.label:
                             st.session_state.selected_event = point.label
+                            st.session_state.active_tab = 3
+                            st.markdown("""
+                                <script>
+                                setTimeout(function() {
+                                    var tabs = document.querySelectorAll('[data-baseweb="tab"]');
+                                    if (tabs.length >= 4) {
+                                        tabs[3].click();
+                                    }
+                                }, 100);
+                                </script>
+                            """, unsafe_allow_html=True)
                             st.rerun()
                     
                     # 快速選擇按鈕
@@ -321,6 +414,17 @@ if uploaded_file:
                         with quick_cols[idx % len(quick_cols)]:
                             if st.button(f"{event_name}\n({count})", key=f"pie_btn_{event_name}", use_container_width=True):
                                 st.session_state.selected_event = event_name
+                                st.session_state.active_tab = 3
+                                st.markdown("""
+                                    <script>
+                                    setTimeout(function() {
+                                        var tabs = document.querySelectorAll('[data-baseweb="tab"]');
+                                        if (tabs.length >= 4) {
+                                            tabs[3].click();
+                                        }
+                                    }, 100);
+                                    </script>
+                                """, unsafe_allow_html=True)
                                 st.rerun()
                 else:
                     st.info("無資料可顯示")
@@ -346,10 +450,11 @@ if uploaded_file:
                     fig_bar.update_layout(
                         showlegend=False, 
                         yaxis={'categoryorder':'total ascending'},
-                        margin=dict(t=20, b=20, l=20, r=20),
+                        margin=dict(t=40, b=40, l=80, r=40, pad=10),
                         height=400,
                         xaxis_title="案件數量",
-                        yaxis_title=""
+                        yaxis_title="",
+                        autosize=True
                     )
                     selected_bar = st.plotly_chart(
                         fig_bar, 
@@ -363,6 +468,17 @@ if uploaded_file:
                         point = selected_bar.selection.points[0]
                         if hasattr(point, 'y') and point.y:
                             st.session_state.selected_dept = point.y
+                            st.session_state.active_tab = 3
+                            st.markdown("""
+                                <script>
+                                setTimeout(function() {
+                                    var tabs = document.querySelectorAll('[data-baseweb="tab"]');
+                                    if (tabs.length >= 4) {
+                                        tabs[3].click();
+                                    }
+                                }, 100);
+                                </script>
+                            """, unsafe_allow_html=True)
                             st.rerun()
                     
                     # 快速選擇按鈕
@@ -372,6 +488,17 @@ if uploaded_file:
                         with quick_cols[idx % len(quick_cols)]:
                             if st.button(f"{row['發生單位']}\n({row['count']})", key=f"bar_btn_{row['發生單位']}", use_container_width=True):
                                 st.session_state.selected_dept = row['發生單位']
+                                st.session_state.active_tab = 3
+                                st.markdown("""
+                                    <script>
+                                    setTimeout(function() {
+                                        var tabs = document.querySelectorAll('[data-baseweb="tab"]');
+                                        if (tabs.length >= 4) {
+                                            tabs[3].click();
+                                        }
+                                    }, 100);
+                                    </script>
+                                """, unsafe_allow_html=True)
                                 st.rerun()
                 else:
                     st.info("無資料可顯示")
@@ -398,10 +525,11 @@ if uploaded_file:
                     )
                     fig_year.update_layout(
                         showlegend=False,
-                        margin=dict(t=20, b=20, l=20, r=20),
+                        margin=dict(t=40, b=60, l=60, r=40, pad=10),
                         height=350,
                         xaxis_title="年度",
-                        yaxis_title="案件數量"
+                        yaxis_title="案件數量",
+                        autosize=True
                     )
                     selected_year_chart = st.plotly_chart(
                         fig_year, 
@@ -415,6 +543,17 @@ if uploaded_file:
                         point = selected_year_chart.selection.points[0]
                         if hasattr(point, 'x') and point.x:
                             st.session_state.selected_year = str(point.x)
+                            st.session_state.active_tab = 3
+                            st.markdown("""
+                                <script>
+                                setTimeout(function() {
+                                    var tabs = document.querySelectorAll('[data-baseweb="tab"]');
+                                    if (tabs.length >= 4) {
+                                        tabs[3].click();
+                                    }
+                                }, 100);
+                                </script>
+                            """, unsafe_allow_html=True)
                             st.rerun()
                 else:
                     st.info("無資料可顯示")
@@ -437,11 +576,12 @@ if uploaded_file:
                     )
                     fig_event.update_layout(
                         showlegend=False,
-                        margin=dict(t=20, b=20, l=20, r=20),
+                        margin=dict(t=40, b=100, l=60, r=40, pad=10),
                         height=350,
                         xaxis_title="事件類別",
                         yaxis_title="案件數量",
-                        xaxis_tickangle=-45
+                        xaxis_tickangle=-45,
+                        autosize=True
                     )
                     st.plotly_chart(fig_event, use_container_width=True, key="event_chart")
                 else:
@@ -470,9 +610,10 @@ if uploaded_file:
                     )
                     fig_trend.update_layout(
                         height=500,
-                        margin=dict(t=50, b=50, l=50, r=50),
+                        margin=dict(t=50, b=60, l=60, r=50, pad=10),
                         hovermode='x unified',
-                        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
+                        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+                        autosize=True
                     )
                     selected_trend = st.plotly_chart(
                         fig_trend, 
@@ -488,6 +629,17 @@ if uploaded_file:
                             st.session_state.selected_event = point.fullData.name
                         if hasattr(point, 'x'):
                             st.session_state.selected_year = str(point.x)
+                        st.session_state.active_tab = 3
+                        st.markdown("""
+                            <script>
+                            setTimeout(function() {
+                                var tabs = document.querySelectorAll('[data-baseweb="tab"]');
+                                if (tabs.length >= 4) {
+                                    tabs[3].click();
+                                }
+                            }, 100);
+                            </script>
+                        """, unsafe_allow_html=True)
                         st.rerun()
                     
                     st.markdown("<br>", unsafe_allow_html=True)
@@ -545,12 +697,21 @@ if uploaded_file:
                 other_cols = [col for col in f_df.columns if col not in display_cols]
                 final_cols = available_cols + other_cols
                 
+                # 使用容器包裝表格以支援橫向滾動
+                st.markdown("""
+                    <div style="overflow-x: auto; width: 100%;">
+                """, unsafe_allow_html=True)
                 st.dataframe(
                     f_df[final_cols], 
                     use_container_width=True, 
                     height=500,
-                    hide_index=True
+                    hide_index=True,
+                    column_config={
+                        col: st.column_config.TextColumn(col, width="medium") 
+                        for col in final_cols if col == "事件描述"
+                    }
                 )
+                st.markdown("</div>", unsafe_allow_html=True)
             else:
                 st.warning("目前篩選條件下無資料可顯示")
         
@@ -596,12 +757,22 @@ if uploaded_file:
                 # 顯示資料
                 display_cols = ["年度", "單號", "日期", "事件類別", "發生單位", "事件描述"]
                 available_cols = [col for col in display_cols if col in detail_df.columns]
+                
+                # 使用容器包裝表格以支援橫向滾動
+                st.markdown("""
+                    <div style="overflow-x: auto; width: 100%;">
+                """, unsafe_allow_html=True)
                 st.dataframe(
                     detail_df[available_cols],
                     use_container_width=True,
                     height=400,
-                    hide_index=True
+                    hide_index=True,
+                    column_config={
+                        col: st.column_config.TextColumn(col, width="medium") 
+                        for col in available_cols if col == "事件描述"
+                    }
                 )
+                st.markdown("</div>", unsafe_allow_html=True)
                 
                 # 下載按鈕
                 csv_detail = detail_df.to_csv(index=False).encode('utf-8-sig')
@@ -626,6 +797,17 @@ if uploaded_file:
                         for event in event_list[:10]:  # 顯示前10個
                             if st.button(f"📌 {event}", key=f"quick_event_{event}", use_container_width=True):
                                 st.session_state.selected_event = event
+                                st.session_state.active_tab = 3
+                                st.markdown("""
+                                    <script>
+                                    setTimeout(function() {
+                                        var tabs = document.querySelectorAll('[data-baseweb="tab"]');
+                                        if (tabs.length >= 4) {
+                                            tabs[3].click();
+                                        }
+                                    }, 100);
+                                    </script>
+                                """, unsafe_allow_html=True)
                                 st.rerun()
                 
                 with quick_col2:
@@ -635,6 +817,17 @@ if uploaded_file:
                         for dept in dept_list[:10]:  # 顯示前10個
                             if st.button(f"🏢 {dept}", key=f"quick_dept_{dept}", use_container_width=True):
                                 st.session_state.selected_dept = dept
+                                st.session_state.active_tab = 3
+                                st.markdown("""
+                                    <script>
+                                    setTimeout(function() {
+                                        var tabs = document.querySelectorAll('[data-baseweb="tab"]');
+                                        if (tabs.length >= 4) {
+                                            tabs[3].click();
+                                        }
+                                    }, 100);
+                                    </script>
+                                """, unsafe_allow_html=True)
                                 st.rerun()
     
     elif df is not None and df.empty:
