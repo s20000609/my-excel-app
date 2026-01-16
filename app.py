@@ -381,7 +381,30 @@ if uploaded_file:
                 st.session_state.selected_year = None
                 st.rerun()
         
-        f_df = df[(df["年度"].isin(years)) & (df["事件類別"].isin(types)) & (df["發生單位"].isin(depts))]
+        # 智能篩選邏輯：如果某個條件有選擇就套用，沒選擇就不篩選該條件
+        filter_conditions = []
+        
+        # 年度篩選
+        if years and len(years) > 0:
+            filter_conditions.append(df["年度"].isin(years))
+        
+        # 事件類別篩選
+        if types and len(types) > 0:
+            filter_conditions.append(df["事件類別"].isin(types))
+        
+        # 發生單位篩選
+        if depts and len(depts) > 0:
+            filter_conditions.append(df["發生單位"].isin(depts))
+        
+        # 如果沒有任何條件，顯示全部資料；否則套用所有選中的條件（AND邏輯）
+        if len(filter_conditions) == 0:
+            f_df = df.copy()
+        else:
+            # 合併所有條件（AND邏輯）
+            combined_condition = filter_conditions[0]
+            for condition in filter_conditions[1:]:
+                combined_condition = combined_condition & condition
+            f_df = df[combined_condition]
 
         # --- KPI 卡片 (專業儀表板風格) ---
         st.markdown("<br>", unsafe_allow_html=True)
