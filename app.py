@@ -325,7 +325,7 @@ with col_header1:
 
 with col_header2:
     st.markdown("<br>", unsafe_allow_html=True)
-    if st.button("🔄 重置", use_container_width=True):
+    if st.button("🔄 重置", use_container_width=True, key="header_reset_btn"):
         st.session_state.selected_event = None
         st.session_state.selected_dept = None
         st.session_state.selected_year = None
@@ -338,39 +338,48 @@ if uploaded_file:
         df = load_data(uploaded_file)
     
     if df is not None and not df.empty:
-        # --- 頂部篩選區 (下拉多選方式) ---
-        st.markdown('<div class="filter-container">', unsafe_allow_html=True)
-        st.markdown("### 🔍 資料篩選")
-        c1, c2, c3, c4 = st.columns([2, 2, 2, 1])
+        # --- 頂部篩選區 (簡潔下拉樣式 - 六版風格) ---
+        st.markdown("""
+            <div class="filter-container" style="padding: 1.5rem 2rem;">
+                <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem;">
+                    <span style="font-size: 1.25rem;">📅</span>
+                    <h3 style="margin: 0; font-size: 0.875rem; font-weight: 900; text-transform: uppercase; letter-spacing: 0.1em; color: #64748b;">資料篩選</h3>
+                </div>
+            </div>
+        """, unsafe_allow_html=True)
+        
+        # 簡潔的三欄布局
+        c1, c2, c3 = st.columns(3)
         with c1:
             years = st.multiselect(
-                "📅 年度", 
+                "年度", 
                 sorted(df["年度"].unique()), 
                 default=sorted(df["年度"].unique()),
-                help="選擇要分析的年度，可多選"
+                key="filter_years"
             )
         with c2:
             types = st.multiselect(
-                "⚠️ 事件類別", 
+                "事件類別", 
                 sorted(df["事件類別"].unique()), 
                 default=sorted(df["事件類別"].unique()),
-                help="選擇要分析的事件類別，可多選"
+                key="filter_types"
             )
         with c3:
             depts = st.multiselect(
-                "🏢 發生單位", 
+                "發生單位", 
                 sorted(df["發生單位"].unique()), 
                 default=sorted(df["發生單位"].unique()),
-                help="選擇要分析的發生單位，可多選"
+                key="filter_depts"
             )
-        with c4:
-            st.markdown("<br>", unsafe_allow_html=True)
-            if st.button("🔄 重置", use_container_width=True):
+        
+        # 重置按鈕單獨一行，右對齊
+        col_reset1, col_reset2 = st.columns([5, 1])
+        with col_reset2:
+            if st.button("🔄 重置", use_container_width=True, key="filter_reset_btn"):
                 st.session_state.selected_event = None
                 st.session_state.selected_dept = None
                 st.session_state.selected_year = None
                 st.rerun()
-        st.markdown('</div>', unsafe_allow_html=True)
         
         f_df = df[(df["年度"].isin(years)) & (df["事件類別"].isin(types)) & (df["發生單位"].isin(depts))]
 
