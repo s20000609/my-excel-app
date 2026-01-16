@@ -16,207 +16,244 @@ if 'selected_year' not in st.session_state:
 if 'active_tab' not in st.session_state:
     st.session_state.active_tab = 0
 
-# --- 專業儀表板 CSS 樣式 ---
+# --- 六版風格 CSS 樣式 ---
 st.markdown("""
     <style>
-    /* 整體背景 */
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700;900&display=swap');
+    
+    * {
+        font-family: 'Noto Sans TC', sans-serif;
+    }
+    
+    /* 整體背景 - 六版風格 */
     .main { 
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        padding: 1rem;
+        background-color: #f3f7fa !important;
+        padding: 1rem 2rem;
+    }
+    
+    /* 玻璃卡片效果 */
+    .glass-card {
+        background: rgba(255, 255, 255, 0.98);
+        backdrop-filter: blur(8px);
+        border: 1px solid rgba(226, 232, 240, 0.8);
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.04);
+        border-radius: 2rem;
+        padding: 2rem;
     }
     
     /* 標題區域 */
     h1 {
-        color: #ffffff !important;
-        text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        color: #0f172a !important;
+        font-weight: 900 !important;
+        font-size: 2.5rem !important;
         margin-bottom: 0.5rem !important;
+        letter-spacing: -0.02em;
     }
     
-    /* KPI 卡片樣式 */
+    /* KPI 卡片樣式 - 六版風格 */
     [data-testid="stMetricValue"] {
-        color: #1f2937 !important;
-        font-size: 2rem !important;
-        font-weight: 700 !important;
+        color: #0f172a !important;
+        font-size: 3rem !important;
+        font-weight: 900 !important;
+        letter-spacing: -0.05em;
     }
     
     [data-testid="stMetricLabel"] {
-        color: #6b7280 !important;
-        font-size: 0.9rem !important;
-        font-weight: 600 !important;
+        color: #64748b !important;
+        font-size: 0.75rem !important;
+        font-weight: 900 !important;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
     }
     
     .stMetric {
-        background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
-        padding: 1.5rem;
-        border-radius: 12px;
-        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
-        border-left: 4px solid #667eea;
+        background: rgba(255, 255, 255, 0.98) !important;
+        padding: 2rem !important;
+        border-radius: 2rem !important;
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.04) !important;
+        border: 1px solid rgba(226, 232, 240, 0.8) !important;
+        border-bottom: 4px solid #4f46e5 !important;
         transition: transform 0.2s;
     }
     
     .stMetric:hover {
         transform: translateY(-2px);
-        box-shadow: 0 15px 30px -5px rgba(0, 0, 0, 0.3);
     }
     
-    /* 篩選器容器 */
+    /* 篩選器容器 - 六版風格 */
     .filter-container {
-        background: rgba(255, 255, 255, 0.95);
-        padding: 1.5rem;
-        border-radius: 12px;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-        margin-bottom: 1.5rem;
-        backdrop-filter: blur(10px);
+        background: rgba(255, 255, 255, 0.98) !important;
+        padding: 1.5rem 2rem;
+        border-radius: 2rem;
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.04);
+        border: 1px solid rgba(226, 232, 240, 0.8);
+        margin-bottom: 2rem;
+        backdrop-filter: blur(8px);
     }
     
     /* 標籤樣式 */
     label {
-        color: #374151 !important;
-        font-weight: 600 !important;
-        font-size: 0.9rem !important;
+        color: #0f172a !important;
+        font-weight: 700 !important;
+        font-size: 0.875rem !important;
     }
     
     /* 選單樣式 */
     .stSelectbox label, .stMultiselect label {
-        color: #4b5563 !important;
+        color: #0f172a !important;
     }
     
-    /* 頁籤樣式 */
+    /* 頁籤樣式 - 六版風格 */
     .stTabs [data-baseweb="tab-list"] { 
-        gap: 8px;
-        background: rgba(255, 255, 255, 0.95);
-        padding: 0.5rem;
-        border-radius: 8px;
-        margin-bottom: 1rem;
+        gap: 4px;
+        background: #e2e8f0 !important;
+        padding: 4px;
+        border-radius: 1rem;
+        margin-bottom: 2rem;
     }
     
     .stTabs [data-baseweb="tab"] {
         height: 45px;
-        font-weight: 600;
-        font-size: 15px;
-        border-radius: 6px;
+        font-weight: 700 !important;
+        font-size: 0.875rem !important;
+        border-radius: 0.75rem;
         background: transparent;
+        color: #64748b !important;
+        transition: all 0.3s;
     }
     
     .stTabs [aria-selected="true"] {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white !important;
+        background: #ffffff !important;
+        color: #2563eb !important;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    }
+    
+    .stTabs [data-baseweb="tab"]:hover:not([aria-selected="true"]) {
+        color: #1e293b !important;
+        background: rgba(255, 255, 255, 0.5) !important;
     }
     
     /* 內容區域 */
     .block-container {
         padding-top: 2rem;
         padding-bottom: 2rem;
+        max-width: 1400px;
     }
     
-    /* 圖表容器 */
+    /* 圖表容器 - 六版風格 */
     [data-testid="stPlotlyChart"] {
-        background: white;
-        border-radius: 12px;
-        padding: 1rem;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        background: rgba(255, 255, 255, 0.98) !important;
+        border-radius: 2.5rem !important;
+        padding: 2rem !important;
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.04) !important;
+        border: 1px solid rgba(226, 232, 240, 0.8) !important;
     }
     
-    /* 資料表格 */
+    /* 資料表格 - 六版風格，支援完整滾動 */
     [data-testid="stDataFrame"] {
-        background: white;
-        border-radius: 12px;
-        padding: 1rem;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-        overflow-x: auto !important;
-        width: 100% !important;
+        background: rgba(255, 255, 255, 0.98) !important;
+        border-radius: 2.5rem !important;
+        padding: 0 !important;
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.04) !important;
+        border: 1px solid rgba(226, 232, 240, 0.8) !important;
+        overflow: visible !important;
     }
     
-    /* 表格容器橫向滾動 */
-    .stDataFrame > div {
+    /* 表格容器完整滾動支援 */
+    .dataframe-container {
         overflow-x: auto !important;
         overflow-y: auto !important;
+        width: 100% !important;
+        max-height: 600px !important;
+        border-radius: 2.5rem;
     }
     
-    /* 確保表格可以橫向滾動 */
-    div[data-testid="stDataFrame"] > div {
-        overflow-x: scroll !important;
-        max-width: 100%;
+    .dataframe-container table {
+        width: 100% !important;
+        min-width: 100% !important;
+    }
+    
+    /* 按鈕樣式 - 六版風格 */
+    .stButton > button {
+        background: #4f46e5 !important;
+        color: white !important;
+        border: none !important;
+        border-radius: 1rem !important;
+        padding: 0.75rem 1.5rem !important;
+        font-weight: 700 !important;
+        transition: all 0.3s !important;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1) !important;
+    }
+    
+    .stButton > button:hover {
+        background: #4338ca !important;
+        transform: translateY(-1px);
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1) !important;
+    }
+    
+    .stDownloadButton > button {
+        background: #4f46e5 !important;
+        color: white !important;
+    }
+    
+    /* 上傳檔案區域 - 六版風格 */
+    [data-testid="stFileUploader"] {
+        background: rgba(255, 255, 255, 0.98) !important;
+        padding: 2rem !important;
+        border-radius: 2rem !important;
+        border: 2px dashed #4f46e5 !important;
+    }
+    
+    /* 資訊卡片 - 六版風格 */
+    .info-card {
+        background: rgba(255, 255, 255, 0.98) !important;
+        padding: 2rem !important;
+        border-radius: 2rem !important;
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.04) !important;
+        border: 1px solid rgba(226, 232, 240, 0.8) !important;
+        margin: 1rem 0;
+    }
+    
+    /* 提示訊息 */
+    .stAlert {
+        border-radius: 1rem !important;
     }
     
     /* 深色模式適配 */
     @media (prefers-color-scheme: dark) {
         .main {
-            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%) !important;
+            background-color: #0f172a !important;
         }
         
-        .stMetric {
-            background: linear-gradient(135deg, #2d3748 0%, #1a202c 100%) !important;
-            color: #e2e8f0 !important;
+        .glass-card, .filter-container, .stMetric {
+            background: rgba(30, 41, 59, 0.98) !important;
+            border-color: rgba(51, 65, 85, 0.8) !important;
         }
         
         [data-testid="stMetricValue"] {
-            color: #f7fafc !important;
+            color: #f1f5f9 !important;
         }
         
         [data-testid="stMetricLabel"] {
-            color: #cbd5e0 !important;
-        }
-        
-        .filter-container {
-            background: rgba(45, 55, 72, 0.95) !important;
-            color: #e2e8f0 !important;
+            color: #94a3b8 !important;
         }
         
         label {
-            color: #e2e8f0 !important;
+            color: #f1f5f9 !important;
         }
         
-        [data-testid="stPlotlyChart"] {
-            background: #2d3748 !important;
-        }
-        
-        [data-testid="stDataFrame"] {
-            background: #2d3748 !important;
-            color: #e2e8f0 !important;
+        [data-testid="stPlotlyChart"], [data-testid="stDataFrame"] {
+            background: rgba(30, 41, 59, 0.98) !important;
         }
         
         .stTabs [data-baseweb="tab-list"] {
-            background: rgba(45, 55, 72, 0.95) !important;
+            background: #1e293b !important;
         }
         
-        .info-card {
-            background: rgba(45, 55, 72, 0.95) !important;
-            color: #e2e8f0 !important;
+        .stTabs [aria-selected="true"] {
+            background: #334155 !important;
+            color: #60a5fa !important;
         }
-    }
-    
-    /* 按鈕樣式 */
-    .stDownloadButton > button {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        border: none;
-        border-radius: 8px;
-        padding: 0.5rem 1.5rem;
-        font-weight: 600;
-        transition: all 0.3s;
-    }
-    
-    .stDownloadButton > button:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
-    }
-    
-    /* 上傳檔案區域 */
-    [data-testid="stFileUploader"] {
-        background: rgba(255, 255, 255, 0.95);
-        padding: 1.5rem;
-        border-radius: 12px;
-        border: 2px dashed #667eea;
-    }
-    
-    /* 資訊卡片 */
-    .info-card {
-        background: rgba(255, 255, 255, 0.95);
-        padding: 1.5rem;
-        border-radius: 12px;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-        margin: 1rem 0;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -273,15 +310,28 @@ def load_data(file):
         st.error(f"讀取 Excel 檔案時發生錯誤：{str(e)}")
         return None
 
-# --- UI 介面 ---
-st.markdown("""
-    <div style="text-align: center; padding: 2rem 0;">
-        <h1 style="color: white; margin: 0;">📊 異常事件分析儀表板</h1>
-        <p style="color: rgba(255,255,255,0.9); font-size: 1.1rem; margin-top: 0.5rem;">數據驅動決策 · 異常事件即時監測系統</p>
-    </div>
-""", unsafe_allow_html=True)
+# --- UI 介面 - 六版風格 ---
+col_header1, col_header2 = st.columns([3, 1])
+with col_header1:
+    st.markdown("""
+        <div style="margin-bottom: 2rem;">
+            <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 0.5rem;">
+                <span style="padding: 0.75rem; background: #4f46e5; border-radius: 1rem; color: white; font-size: 1.5rem;">🛡️</span>
+                <h1 style="margin: 0; color: #0f172a; font-weight: 900; font-size: 2.5rem; letter-spacing: -0.02em;">醫療異常事件分析儀表板</h1>
+            </div>
+            <p style="color: #64748b; font-weight: 500; margin-left: 4rem; font-size: 1rem;">自動分析類別件數與事由 · 支援多年度數據合併</p>
+        </div>
+    """, unsafe_allow_html=True)
 
-uploaded_file = st.file_uploader("📁 上傳 Excel 檔案", type=["xlsx"], help="支援 .xlsx 格式，系統將自動分析多個工作表")
+with col_header2:
+    st.markdown("<br>", unsafe_allow_html=True)
+    if st.button("🔄 重置", use_container_width=True):
+        st.session_state.selected_event = None
+        st.session_state.selected_dept = None
+        st.session_state.selected_year = None
+        st.rerun()
+
+uploaded_file = st.file_uploader("📁 上傳 Excel / CSV 檔案", type=["xlsx"], help="支援 .xlsx 格式，系統將自動分析多個工作表")
 
 if uploaded_file:
     with st.spinner("正在讀取和分析 Excel 檔案..."):
@@ -334,25 +384,7 @@ if uploaded_file:
             k5.metric("🏢 涉及單位", "0", delta=None)
 
         # --- 主要內容區 ---
-        tab_names = ["📌 統計總覽", "📈 趨勢分析", "📋 資料明細", "🔍 點擊詳情"]
-        
-        # 如果有選擇項目，顯示提示並自動跳轉
-        if st.session_state.selected_event or st.session_state.selected_dept or st.session_state.selected_year:
-            if st.session_state.active_tab != 3:
-                st.session_state.active_tab = 3
-                # 使用 JavaScript 自動切換到點擊詳情頁籤
-                st.markdown("""
-                    <script>
-                    setTimeout(function() {
-                        var tabs = document.querySelectorAll('[data-baseweb="tab"]');
-                        if (tabs.length >= 4) {
-                            tabs[3].click();
-                        }
-                    }, 100);
-                    </script>
-                """, unsafe_allow_html=True)
-        
-        tab_total, tab_trend, tab_data, tab_detail = st.tabs(tab_names)
+        tab_total, tab_trend, tab_data, tab_detail = st.tabs(["📌 統計總覽", "📈 趨勢分析", "📋 資料明細", "🔍 點擊詳情"])
         
         with tab_total:
             # 第一行：兩個主要圖表
@@ -362,11 +394,19 @@ if uploaded_file:
                 st.markdown("### 🎯 事件分布比率")
                 if not f_df.empty and "事件類別" in f_df.columns:
                     event_counts = f_df["事件類別"].value_counts()
+                    # 六版風格配色
+                    category_colors = {
+                        '心跳事件': '#F43F5E', '管路事件': '#3B82F6', '跌倒事件': '#F59E0B',
+                        '公共事件': '#10B981', '藥物事件': '#8B5CF6', '其他事件': '#64748B',
+                        '輸血事件': '#BE123C', '檢查檢驗': '#06B6D4', '傷害事件': '#EF4444'
+                    }
+                    colors_list = [category_colors.get(cat, '#94a3b8') for cat in event_counts.index]
+                    
                     fig_pie = px.pie(
                         values=event_counts.values, 
                         names=event_counts.index, 
-                        hole=0.4,
-                        color_discrete_sequence=px.colors.qualitative.Set3
+                        hole=0.72,
+                        color_discrete_sequence=colors_list
                     )
                     fig_pie.update_traces(
                         textposition='inside', 
@@ -394,38 +434,9 @@ if uploaded_file:
                         point = selected_pie.selection.points[0]
                         if hasattr(point, 'label') and point.label:
                             st.session_state.selected_event = point.label
-                            st.session_state.active_tab = 3
-                            st.markdown("""
-                                <script>
-                                setTimeout(function() {
-                                    var tabs = document.querySelectorAll('[data-baseweb="tab"]');
-                                    if (tabs.length >= 4) {
-                                        tabs[3].click();
-                                    }
-                                }, 100);
-                                </script>
-                            """, unsafe_allow_html=True)
+                            st.success(f"✅ 已選擇：{point.label}，請切換到「🔍 點擊詳情」頁籤查看")
                             st.rerun()
                     
-                    # 快速選擇按鈕
-                    st.markdown("**快速選擇：**")
-                    quick_cols = st.columns(min(5, len(event_counts)))
-                    for idx, (event_name, count) in enumerate(event_counts.head(5).items()):
-                        with quick_cols[idx % len(quick_cols)]:
-                            if st.button(f"{event_name}\n({count})", key=f"pie_btn_{event_name}", use_container_width=True):
-                                st.session_state.selected_event = event_name
-                                st.session_state.active_tab = 3
-                                st.markdown("""
-                                    <script>
-                                    setTimeout(function() {
-                                        var tabs = document.querySelectorAll('[data-baseweb="tab"]');
-                                        if (tabs.length >= 4) {
-                                            tabs[3].click();
-                                        }
-                                    }, 100);
-                                    </script>
-                                """, unsafe_allow_html=True)
-                                st.rerun()
                 else:
                     st.info("無資料可顯示")
             
@@ -442,7 +453,8 @@ if uploaded_file:
                         orientation='h',
                         text="count", 
                         color="count", 
-                        color_continuous_scale='Blues'
+                        color_continuous_scale='Blues',
+                        color_discrete_sequence=['#4f46e5']
                     )
                     fig_bar.update_traces(
                         hovertemplate='<b>%{y}</b><br>案件數: %{x}<extra></extra>'
@@ -468,38 +480,9 @@ if uploaded_file:
                         point = selected_bar.selection.points[0]
                         if hasattr(point, 'y') and point.y:
                             st.session_state.selected_dept = point.y
-                            st.session_state.active_tab = 3
-                            st.markdown("""
-                                <script>
-                                setTimeout(function() {
-                                    var tabs = document.querySelectorAll('[data-baseweb="tab"]');
-                                    if (tabs.length >= 4) {
-                                        tabs[3].click();
-                                    }
-                                }, 100);
-                                </script>
-                            """, unsafe_allow_html=True)
+                            st.success(f"✅ 已選擇：{point.y}，請切換到「🔍 點擊詳情」頁籤查看")
                             st.rerun()
                     
-                    # 快速選擇按鈕
-                    st.markdown("**快速選擇：**")
-                    quick_cols = st.columns(min(5, len(dept_rank)))
-                    for idx, row in dept_rank.head(5).iterrows():
-                        with quick_cols[idx % len(quick_cols)]:
-                            if st.button(f"{row['發生單位']}\n({row['count']})", key=f"bar_btn_{row['發生單位']}", use_container_width=True):
-                                st.session_state.selected_dept = row['發生單位']
-                                st.session_state.active_tab = 3
-                                st.markdown("""
-                                    <script>
-                                    setTimeout(function() {
-                                        var tabs = document.querySelectorAll('[data-baseweb="tab"]');
-                                        if (tabs.length >= 4) {
-                                            tabs[3].click();
-                                        }
-                                    }, 100);
-                                    </script>
-                                """, unsafe_allow_html=True)
-                                st.rerun()
                 else:
                     st.info("無資料可顯示")
             
@@ -543,17 +526,7 @@ if uploaded_file:
                         point = selected_year_chart.selection.points[0]
                         if hasattr(point, 'x') and point.x:
                             st.session_state.selected_year = str(point.x)
-                            st.session_state.active_tab = 3
-                            st.markdown("""
-                                <script>
-                                setTimeout(function() {
-                                    var tabs = document.querySelectorAll('[data-baseweb="tab"]');
-                                    if (tabs.length >= 4) {
-                                        tabs[3].click();
-                                    }
-                                }, 100);
-                                </script>
-                            """, unsafe_allow_html=True)
+                            st.success(f"✅ 已選擇：{point.x} 年，請切換到「🔍 點擊詳情」頁籤查看")
                             st.rerun()
                 else:
                     st.info("無資料可顯示")
@@ -629,17 +602,7 @@ if uploaded_file:
                             st.session_state.selected_event = point.fullData.name
                         if hasattr(point, 'x'):
                             st.session_state.selected_year = str(point.x)
-                        st.session_state.active_tab = 3
-                        st.markdown("""
-                            <script>
-                            setTimeout(function() {
-                                var tabs = document.querySelectorAll('[data-baseweb="tab"]');
-                                if (tabs.length >= 4) {
-                                    tabs[3].click();
-                                }
-                            }, 100);
-                            </script>
-                        """, unsafe_allow_html=True)
+                        st.success("✅ 已選擇圖表資料，請切換到「🔍 點擊詳情」頁籤查看")
                         st.rerun()
                     
                     st.markdown("<br>", unsafe_allow_html=True)
@@ -697,9 +660,9 @@ if uploaded_file:
                 other_cols = [col for col in f_df.columns if col not in display_cols]
                 final_cols = available_cols + other_cols
                 
-                # 使用容器包裝表格以支援橫向滾動
+                # 使用更好的表格容器支援完整滾動
                 st.markdown("""
-                    <div style="overflow-x: auto; width: 100%;">
+                    <div class="dataframe-container">
                 """, unsafe_allow_html=True)
                 st.dataframe(
                     f_df[final_cols], 
@@ -707,8 +670,11 @@ if uploaded_file:
                     height=500,
                     hide_index=True,
                     column_config={
-                        col: st.column_config.TextColumn(col, width="medium") 
-                        for col in final_cols if col == "事件描述"
+                        col: st.column_config.TextColumn(
+                            col, 
+                            width="large" if col == "事件描述" else "medium"
+                        ) 
+                        for col in final_cols
                     }
                 )
                 st.markdown("</div>", unsafe_allow_html=True)
@@ -717,7 +683,41 @@ if uploaded_file:
         
         with tab_detail:
             st.markdown("### 🔍 圖表點擊詳情")
-            st.markdown("**提示：** 點擊上方圖表中的資料點，下方會自動顯示對應的詳細資料")
+            st.markdown("**提示：** 點擊上方圖表中的資料點，或使用下方快速選擇按鈕來查看詳細資料")
+            
+            # 快速選擇按鈕區域
+            st.markdown("---")
+            st.markdown("#### 🎯 快速選擇")
+            
+            col_quick1, col_quick2 = st.columns(2)
+            
+            with col_quick1:
+                st.markdown("**事件類別快速選擇：**")
+                if not f_df.empty and "事件類別" in f_df.columns:
+                    event_counts = f_df["事件類別"].value_counts()
+                    quick_cols = st.columns(min(3, len(event_counts)))
+                    for idx, (event_name, count) in enumerate(event_counts.head(6).items()):
+                        with quick_cols[idx % len(quick_cols)]:
+                            if st.button(f"{event_name}\n({count})", key=f"quick_event_{event_name}", use_container_width=True):
+                                st.session_state.selected_event = event_name
+                                st.session_state.selected_dept = None
+                                st.session_state.selected_year = None
+                                st.rerun()
+            
+            with col_quick2:
+                st.markdown("**單位快速選擇：**")
+                if not f_df.empty and "發生單位" in f_df.columns:
+                    dept_rank = f_df["發生單位"].value_counts().head(6)
+                    quick_cols = st.columns(min(3, len(dept_rank)))
+                    for idx, (dept_name, count) in enumerate(dept_rank.items()):
+                        with quick_cols[idx % len(quick_cols)]:
+                            if st.button(f"{dept_name}\n({count})", key=f"quick_dept_{dept_name}", use_container_width=True):
+                                st.session_state.selected_dept = dept_name
+                                st.session_state.selected_event = None
+                                st.session_state.selected_year = None
+                                st.rerun()
+            
+            st.markdown("---")
             
             detail_df = None
             
@@ -758,9 +758,9 @@ if uploaded_file:
                 display_cols = ["年度", "單號", "日期", "事件類別", "發生單位", "事件描述"]
                 available_cols = [col for col in display_cols if col in detail_df.columns]
                 
-                # 使用容器包裝表格以支援橫向滾動
+                # 使用更好的表格容器支援完整滾動
                 st.markdown("""
-                    <div style="overflow-x: auto; width: 100%;">
+                    <div class="dataframe-container">
                 """, unsafe_allow_html=True)
                 st.dataframe(
                     detail_df[available_cols],
@@ -768,8 +768,11 @@ if uploaded_file:
                     height=400,
                     hide_index=True,
                     column_config={
-                        col: st.column_config.TextColumn(col, width="medium") 
-                        for col in available_cols if col == "事件描述"
+                        col: st.column_config.TextColumn(
+                            col, 
+                            width="large" if col == "事件描述" else "medium"
+                        ) 
+                        for col in available_cols
                     }
                 )
                 st.markdown("</div>", unsafe_allow_html=True)
@@ -783,52 +786,7 @@ if uploaded_file:
                     "text/csv"
                 )
             else:
-                st.info("👆 請點擊上方圖表中的資料點來查看詳細資訊")
-                
-                # 顯示快速篩選
-                st.markdown("---")
-                st.markdown("#### 🎯 快速篩選預覽")
-                quick_col1, quick_col2 = st.columns(2)
-                
-                with quick_col1:
-                    if not f_df.empty and "事件類別" in f_df.columns:
-                        st.markdown("**事件類別快速選擇：**")
-                        event_list = sorted(f_df["事件類別"].unique())
-                        for event in event_list[:10]:  # 顯示前10個
-                            if st.button(f"📌 {event}", key=f"quick_event_{event}", use_container_width=True):
-                                st.session_state.selected_event = event
-                                st.session_state.active_tab = 3
-                                st.markdown("""
-                                    <script>
-                                    setTimeout(function() {
-                                        var tabs = document.querySelectorAll('[data-baseweb="tab"]');
-                                        if (tabs.length >= 4) {
-                                            tabs[3].click();
-                                        }
-                                    }, 100);
-                                    </script>
-                                """, unsafe_allow_html=True)
-                                st.rerun()
-                
-                with quick_col2:
-                    if not f_df.empty and "發生單位" in f_df.columns:
-                        st.markdown("**單位快速選擇：**")
-                        dept_list = sorted(f_df["發生單位"].unique())
-                        for dept in dept_list[:10]:  # 顯示前10個
-                            if st.button(f"🏢 {dept}", key=f"quick_dept_{dept}", use_container_width=True):
-                                st.session_state.selected_dept = dept
-                                st.session_state.active_tab = 3
-                                st.markdown("""
-                                    <script>
-                                    setTimeout(function() {
-                                        var tabs = document.querySelectorAll('[data-baseweb="tab"]');
-                                        if (tabs.length >= 4) {
-                                            tabs[3].click();
-                                        }
-                                    }, 100);
-                                    </script>
-                                """, unsafe_allow_html=True)
-                                st.rerun()
+                st.info("👆 請使用上方的快速選擇按鈕，或點擊圖表中的資料點來查看詳細資訊")
     
     elif df is not None and df.empty:
         st.warning("Excel 檔案已讀取，但未找到符合格式的資料。請確認檔案包含「單號」欄位。")
