@@ -1,135 +1,185 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
-import io
+import plotly.graph_objects as go
 
-st.set_page_config(page_title="異常事件趨勢分析", layout="wide")
-st.title("🏥 異常事件跨年度分析整合系統")
-st.markdown("此工具會自動偵測標題列並合併不同年度的 Excel 表單。")
+st.set_page_config(page_title="異常事件戰情儀表板", layout="wide", page_icon="🏥")
 
-# 1. 定義智慧讀取函數
-def load_and_standardize(file):
+# --- CSS樣式優化 (讓指標卡片好看一點) ---
+st.markdown("""
+<style>
+    .metric-card {
+        background-color: #f0f2f6;
+        padding: 15px;
+        border-radius: 10px;
+        border-left: 5px solid #ff4b4b;
+        box-shadow: 2px 2px 5px rgba(0,0,0,0.1);
+    }
+</style>
+""", unsafe_allow_html=True)
+
+st.title("🏥 異常事件監測儀表板")
+st.markdown("跨年度 (111-114) 數據整合分析系統")
+
+# --- 1. 核心處理邏輯 ---
+def load_and_clean_data(file):
     xl = pd.ExcelFile(file)
     all_data = []
     
-    # 定義欄位同義詞字典 (統一欄位名稱)
+    # 定義更強大的欄位對照表 (左邊是Excel可能出現的字，右邊是統一的名稱)
     rename_map = {
+        "新事件類別": "事件類別",  # 這是導致掉資料的主因
         "發生部門": "發生單位",
         "事件發生地點": "發生地點",
         "通報部門": "通報單位",
-        # 根據需要可以繼續新增
+        "事情發生後受影響的對象": "受影響對象",
+        "事件發生後受影響的對象": "受影響對象",
+        "通報日期": "日期"
     }
 
+    logs = [] # 用來記錄讀取狀況給使用者看
+
     for sheet in xl.sheet_names:
-        # 先讀取前 20 行來尋找標題列在哪裡
-        # 預設 header=None 先全讀進來找關鍵字
-        df_temp = pd.read_excel(file, sheet_name=sheet, header=None, nrows=20)
+        # 讀取前 30 行找標題 (放寬範圍)
+        df_temp = pd.read_excel(file, sheet_name=sheet, header=None, nrows=30)
         
         header_row_index = -1
-        # 尋找包含 "單號" 或 "通報日期" 的那一列
+        # 尋找關鍵字
         for i, row in df_temp.iterrows():
-            row_values = row.astype(str).values
-            if "單號" in row_values or "通報日期" in row_values:
+            row_str = row.astype(str).values
+            if "單號" in row_str or "通報員編" in row_str:
                 header_row_index = i
                 break
         
         if header_row_index != -1:
-            # 找到標題列後，正式讀取該 sheet
+            # 正式讀取
             df = pd.read_excel(file, sheet_name=sheet, header=header_row_index)
             
-            # 統一欄位名稱
+            # 1. 先改名
             df.rename(columns=rename_map, inplace=True)
             
-            # 加入一個「年度/表單」欄位，方便後續篩選
-            df["來源表單"] = sheet
+            # 2. 標記來源
+            df["年度"] = sheet
             
-            # 確保必要的欄位存在 (避免空表單報錯)
-            if "事件類別" in df.columns:
-                all_data.append(df)
+            # 3. 確保關鍵欄位存在，若無則補空值 (避免報錯)
+            if "事件類別" not in df.columns:
+                df["事件類別"] = "未分類"
+            if "發生單位" not in df.columns:
+                df["發生單位"] = "未知單位"
+                
+            all_data.append(df)
+            logs.append(f"✅ 成功讀取表單：{sheet} (共 {len(df)} 筆)")
         else:
-            st.warning(f"⚠️ 在表單 '{sheet}' 中找不到標準標題列，已跳過。")
+            logs.append(f"⚠️ 跳過表單：{sheet} (找不到標題列)")
 
     if all_data:
-        # 合併所有 DataFrame
         final_df = pd.concat(all_data, ignore_index=True)
-        return final_df
+        
+        # --- 資料清洗與型別轉換 ---
+        # 處理日期格式 (將文字轉為 datetime)
+        final_df["日期"] = pd.to_datetime(final_df["日期"], errors='coerce')
+        final_df["月份"] = final_df["日期"].dt.strftime('%Y-%m') # 轉成年-月字串
+        final_df["年"] = final_df["日期"].dt.year
+        
+        return final_df, logs
     else:
-        return None
+        return None, logs
 
-# 2. 檔案上傳區
-uploaded_file = st.file_uploader("📂 請上傳 Excel 檔案 (包含多個年度)", type=["xlsx"])
+# --- 2. 介面呈現 ---
+uploaded_file = st.file_uploader("📂 上傳整合 Excel (支援多Sheet)", type=["xlsx"])
 
 if uploaded_file:
-    with st.spinner('正在進行智慧合併與資料清理...'):
-        df = load_and_standardize(uploaded_file)
+    df, logs = load_and_clean_data(uploaded_file)
     
+    # 顯示讀取日誌 (讓你知道每一張表有沒有抓到)
+    with st.expander("查看資料讀取狀態"):
+        for log in logs:
+            st.write(log)
+        if df is not None:
+            st.write(f"📊 **總計合併資料筆數：{len(df)} 筆**")
+
     if df is not None:
-        st.success(f"成功合併！共讀取 {len(df)} 筆資料，來自 {df['來源表單'].nunique()} 個表單。")
-        
-        # 3. 側邊欄：全域篩選
-        st.sidebar.header("🔍 資料篩選")
-        
-        # 年度篩選
-        all_sheets = df["來源表單"].unique().tolist()
-        selected_sheets = st.sidebar.multiselect("選擇年度/來源", all_sheets, default=all_sheets)
-        
-        # 事件類別篩選
-        if "事件類別" in df.columns:
-            all_types = df["事件類別"].astype(str).unique().tolist()
-            selected_types = st.sidebar.multiselect("選擇事件類別", all_types, default=all_types)
-        else:
-            selected_types = []
-            
-        # 執行篩選
-        mask = df["來源表單"].isin(selected_sheets)
-        if "事件類別" in df.columns and selected_types:
-            mask = mask & df["事件類別"].isin(selected_types)
-            
-        filtered_df = df[mask]
-        
-        # 4. 視覺化儀表板
-        
-        # 上半部：關鍵指標
-        col1, col2, col3 = st.columns(3)
-        col1.metric("總案件數", len(filtered_df))
-        if "事件類別" in filtered_df.columns:
-            top_event = filtered_df["事件類別"].value_counts().idxmax() if not filtered_df.empty else "無"
-            col2.metric("發生最多類別", top_event)
-        
         st.divider()
-
-        # 圖表區
-        tab1, tab2 = st.tabs(["📊 類別統計", "📅 年度趨勢比較"])
         
-        with tab1:
-            if "事件類別" in filtered_df.columns and "發生單位" in filtered_df.columns:
-                st.subheader("各單位異常事件分佈")
-                fig_bar = px.bar(
-                    filtered_df, 
-                    x="發生單位", 
-                    color="事件類別", 
-                    title="各單位事件類型堆疊圖",
-                    barmode="group"
-                )
+        # --- 側邊欄篩選 ---
+        st.sidebar.header("🔍 篩選條件")
+        
+        # 年份篩選
+        years = sorted(df["年度"].unique().tolist())
+        selected_years = st.sidebar.multiselect("選擇年度", years, default=years)
+        
+        # 單位篩選
+        depts = df["發生單位"].astype(str).unique().tolist()
+        selected_depts = st.sidebar.multiselect("選擇發生單位", depts, default=depts)
+
+        # 類別篩選
+        types = df["事件類別"].astype(str).unique().tolist()
+        selected_types = st.sidebar.multiselect("選擇事件類別", types, default=types)
+
+        # 執行篩選
+        mask = (df["年度"].isin(selected_years)) & \
+               (df["發生單位"].isin(selected_depts)) & \
+               (df["事件類別"].isin(selected_types))
+        filtered_df = df[mask]
+
+        # --- 3. 儀表板 KPI 區 (Dashboard Header) ---
+        col1, col2, col3, col4 = st.columns(4)
+        
+        total_cases = len(filtered_df)
+        
+        # 計算最常發生的類別
+        top_type = filtered_df["事件類別"].mode()[0] if not filtered_df.empty else "無"
+        top_type_count = filtered_df["事件類別"].value_counts().max() if not filtered_df.empty else 0
+        
+        # 計算最常發生的單位
+        top_dept = filtered_df["發生單位"].mode()[0] if not filtered_df.empty else "無"
+        
+        # 嚴重度統計 (假設有 '影響程度' 欄位，若無則顯示 N/A)
+        # 這裡根據你的檔案欄位做個容錯
+        severity_col = "受影響對象" if "受影響對象" in filtered_df.columns else None
+        top_victim = filtered_df[severity_col].mode()[0] if (severity_col and not filtered_df.empty) else "未知"
+
+        col1.metric("📌 總案件數", f"{total_cases} 件")
+        col2.metric("⚠️ 最高頻事件", f"{top_type}", f"{top_type_count} 件")
+        col3.metric("🏥 熱點單位", f"{top_dept}")
+        col4.metric("🤕 主要影響對象", f"{top_victim}")
+
+        st.markdown("---")
+
+        # --- 4. 圖表區 (兩欄佈局) ---
+        
+        # Row 1: 圓餅圖 + 長條圖
+        c1, c2 = st.columns([1, 2]) # 左窄右寬
+        
+        with c1:
+            st.subheader("事件類別佔比")
+            if not filtered_df.empty:
+                fig_pie = px.pie(filtered_df, names="事件類別", hole=0.4, color_discrete_sequence=px.colors.sequential.RdBu)
+                st.plotly_chart(fig_pie, use_container_width=True)
+        
+        with c2:
+            st.subheader("各單位發生次數排名")
+            if not filtered_df.empty:
+                dept_counts = filtered_df["發生單位"].value_counts().reset_index()
+                dept_counts.columns = ["發生單位", "次數"]
+                fig_bar = px.bar(dept_counts.head(10), x="發生單位", y="次數", text="次數", color="次數")
+                fig_bar.update_traces(textposition='outside')
                 st.plotly_chart(fig_bar, use_container_width=True)
-        
-        with tab2:
-            st.subheader("跨年度案件量比較")
-            # 這裡簡單計算每個來源表單的案件量
-            trend_data = filtered_df.groupby(["來源表單", "事件類別"]).size().reset_index(name="案件數")
-            fig_line = px.line(
-                trend_data, 
-                x="來源表單", 
-                y="案件數", 
-                color="事件類別", 
-                markers=True,
-                title="各類別事件跨年度變化"
-            )
-            st.plotly_chart(fig_line, use_container_width=True)
 
-        # 顯示詳細資料
-        with st.expander("查看詳細資料表"):
-            st.dataframe(filtered_df)
-            
-    else:
-        st.error("無法讀取資料，請確認 Excel 中包含「單號」或「通報日期」等欄位。")
+        # Row 2: 趨勢圖 (折線圖)
+        st.subheader("📅 案件發生時間趨勢")
+        if not filtered_df.empty and "日期" in filtered_df.columns:
+            # 依月份+類別統計
+            trend_df = filtered_df.groupby([pd.Grouper(key='日期', freq='M'), '事件類別']).size().reset_index(name='件數')
+            fig_line = px.line(trend_df, x="日期", y="件數", color="事件類別", markers=True)
+            fig_line.update_layout(xaxis_title="時間", yaxis_title="案件數")
+            st.plotly_chart(fig_line, use_container_width=True)
+        else:
+            st.info("無法解析日期欄位，請確認 Excel 包含 '通報日期' 或 '日期' 欄位。")
+
+        # --- 5. 資料明細 ---
+        with st.expander("📂 檢視原始資料清單"):
+            st.dataframe(filtered_df.sort_values(by="日期", ascending=False), use_container_width=True)
+
+else:
+    st.info("👈 請從左側或上方上傳您的 Excel 檔案以開始分析")
