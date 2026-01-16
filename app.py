@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 import re
+from datetime import datetime
 
 # --- 頁面設定 ---
 st.set_page_config(page_title="異常事件戰情室 V7", layout="wide", page_icon="📈", initial_sidebar_state="collapsed")
@@ -258,54 +259,182 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
+# --- Schema Mapping 定義 ---
+SCHEMA_MAPPING = {
+    "id": ["單號"],
+    "date": ["通報日期", "日期"],
+    "department": ["發生單位", "發生部門", "通報部門"],
+    "category": ["新事件類別", "事件類別"],
+    "location": ["事件發生地點", "發生地點"],
+    "description": ["事件描述"],
+    "severity": ["事件發生後對病人健康的影響程度", "事件發生後對病人的影響程度", "嚴重度"],
+    "victim": ["事件發生後受影響的對象", "事情發生後受影響的對象"]
+}
+
 # --- 核心邏輯：事件類別清洗 ---
 def clean_event_category(text):
+    """使用正則表達式提取核心事件類別（如：跌倒事件、管路事件）"""
+    if pd.isna(text) or text == "":
+        return "其他事件"
     text = str(text).strip()
     # 使用正則表達式只抓取「某某事件」這四個字
     match = re.search(r'[\u4e00-\u9fa5]{2}事件', text)
     return match.group(0) if match else "其他事件"
 
+# --- 日期格式統一化 ---
+def normalize_date(date_value):
+    """統一日期格式為 YYYY-MM-DD"""
+    if pd.isna(date_value) or date_value == "":
+        return None
+    
+    date_str = str(date_value).strip()
+    
+    # 嘗試解析各種日期格式
+    date_formats = [
+        "%Y-%m-%d",      # 2025-01-21
+        "%Y/%m/%d",     # 2023/01/22
+        "%Y-%m-%d %H:%M:%S",  # 帶時間的格式
+        "%Y/%m/%d %H:%M:%S",
+    ]
+    
+    for fmt in date_formats:
+        try:
+            dt = datetime.strptime(date_str.split()[0], fmt.split()[0])  # 只取日期部分
+            return dt.strftime("%Y-%m-%d")
+        except:
+            continue
+    
+    # 如果都無法解析，嘗試直接提取日期部分
+    date_match = re.search(r'(\d{4})[-/](\d{1,2})[-/](\d{1,2})', date_str)
+    if date_match:
+        year, month, day = date_match.groups()
+        try:
+            dt = datetime(int(year), int(month), int(day))
+            return dt.strftime("%Y-%m-%d")
+        except:
+            pass
+    
+    return None
+
+# --- 智能欄位對應 ---
+def find_column(df, possible_names):
+    """在 DataFrame 中尋找可能的欄位名稱"""
+    for name in possible_names:
+        if name in df.columns:
+            return name
+    return None
+
+# --- 主要資料載入函數 ---
 def load_data(file):
+    """
+    根據 Schema Mapping 規則載入和清洗 Excel 資料
+    標題列固定在第一行（Row 1, index=0）
+    """
     try:
         xl = pd.ExcelFile(file)
         all_data = []
         
         for sheet in xl.sheet_names:
             try:
-                df_temp = pd.read_excel(file, sheet_name=sheet, header=None, nrows=25)
-                header_row = -1
-                for i, row in df_temp.iterrows():
-                    if "單號" in [str(x) for x in row.values]:
-                        header_row = i
-                        break
+                # 標題列固定在第一行（header=0）
+                df = pd.read_excel(file, sheet_name=sheet, header=0)
+                df = df.loc[:, ~df.columns.duplicated()]  # 刪除重複標題
                 
-                if header_row != -1:
-                    df = pd.read_excel(file, sheet_name=sheet, header=header_row)
-                    df = df.loc[:, ~df.columns.duplicated()] # 刪除重複標題
-                    
-                    # 智慧對應：114年叫新事件類別，其他叫事件類別
-                    target_col = "新事件類別" if "新事件類別" in df.columns else "事件類別"
-                    
-                    if target_col in df.columns:
-                        # 重點：清理事件類別，只留「XX事件」
-                        df["事件類別"] = df[target_col].apply(clean_event_category)
-                    
-                    # 統一必要欄位
-                    rename_map = {"發生部門": "發生單位", "通報日期": "日期"}
-                    df.rename(columns=rename_map, inplace=True)
-                    
-                    # 篩選出需要的欄位並合併
-                    keep = ["單號", "日期", "事件類別", "發生單位", "事件描述"]
-                    valid_cols = [c for c in keep if c in df.columns]
-                    if valid_cols:  # 確保有有效欄位
-                        temp_df = df[valid_cols].copy()
-                        temp_df["年度"] = sheet
-                        all_data.append(temp_df)
+                # 建立標準化欄位對應
+                standardized_df = pd.DataFrame()
+                
+                # 1. id (單號)
+                id_col = find_column(df, SCHEMA_MAPPING["id"])
+                if id_col:
+                    standardized_df["id"] = df[id_col].astype(str).str.strip()
+                
+                # 2. date (日期) - 需要格式統一
+                date_col = find_column(df, SCHEMA_MAPPING["date"])
+                if date_col:
+                    standardized_df["date"] = df[date_col].apply(normalize_date)
+                
+                # 3. department (發生單位) - 空值處理
+                dept_col = find_column(df, SCHEMA_MAPPING["department"])
+                if dept_col:
+                    standardized_df["department"] = df[dept_col].fillna("未知單位").astype(str).str.strip()
+                    standardized_df["department"] = standardized_df["department"].replace("", "未知單位")
+                else:
+                    standardized_df["department"] = "未知單位"
+                
+                # 4. category (事件類別) - 優先讀取「新事件類別」，若為空則讀取「事件類別」
+                category_col = None
+                if "新事件類別" in df.columns:
+                    # 檢查「新事件類別」是否有值
+                    new_category_has_value = df["新事件類別"].notna() & (df["新事件類別"].astype(str).str.strip() != "")
+                    if new_category_has_value.any():
+                        category_col = "新事件類別"
+                
+                if category_col is None:
+                    category_col = find_column(df, ["事件類別"])
+                
+                if category_col:
+                    standardized_df["category"] = df[category_col].apply(clean_event_category)
+                else:
+                    standardized_df["category"] = "其他事件"
+                
+                # 5. location (發生地點) - 可選欄位
+                location_col = find_column(df, SCHEMA_MAPPING["location"])
+                if location_col:
+                    standardized_df["location"] = df[location_col].astype(str).str.strip()
+                
+                # 6. description (事件描述) - 可選欄位
+                desc_col = find_column(df, SCHEMA_MAPPING["description"])
+                if desc_col:
+                    standardized_df["description"] = df[desc_col].astype(str).str.strip()
+                
+                # 7. severity (嚴重度) - 可選欄位
+                severity_col = find_column(df, SCHEMA_MAPPING["severity"])
+                if severity_col:
+                    standardized_df["severity"] = df[severity_col].astype(str).str.strip()
+                
+                # 8. victim (受影響對象) - 可選欄位
+                victim_col = find_column(df, SCHEMA_MAPPING["victim"])
+                if victim_col:
+                    standardized_df["victim"] = df[victim_col].astype(str).str.strip()
+                
+                # 加入年度資訊
+                standardized_df["source_year"] = sheet
+                
+                # 只保留有 id 的資料（確保資料有效性）
+                if "id" in standardized_df.columns:
+                    standardized_df = standardized_df[standardized_df["id"].notna() & (standardized_df["id"] != "")]
+                    if not standardized_df.empty:
+                        all_data.append(standardized_df)
+                
             except Exception as e:
                 st.warning(f"讀取工作表 '{sheet}' 時發生錯誤，已跳過：{str(e)}")
                 continue
 
-        return pd.concat(all_data, ignore_index=True) if all_data else None
+        if all_data:
+            # 合併所有年度資料
+            combined_df = pd.concat(all_data, ignore_index=True)
+            
+            # 為了向後兼容，將標準化欄位轉換回舊的欄位名稱
+            rename_to_old = {
+                "id": "單號",
+                "date": "日期",
+                "department": "發生單位",
+                "category": "事件類別",
+                "location": "發生地點",
+                "description": "事件描述",
+                "severity": "嚴重度",
+                "victim": "受影響對象",
+                "source_year": "年度"
+            }
+            
+            # 只重命名存在的欄位
+            existing_rename = {k: v for k, v in rename_to_old.items() if k in combined_df.columns}
+            combined_df.rename(columns=existing_rename, inplace=True)
+            
+            return combined_df
+        else:
+            return None
+            
     except Exception as e:
         st.error(f"讀取 Excel 檔案時發生錯誤：{str(e)}")
         return None
